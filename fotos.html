@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galeria de Fotos - Visitantes</title>
+<style>
+body{
+  margin:0;
+  font-family:system-ui;
+  background:#0f172a;
+  color:#e5e7eb;
+}
+h1{text-align:center;margin:20px 0;}
+#filtroContainer{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px;
+  margin-bottom:16px;
+  padding:0 16px;
+}
+#filtroFeira,#filtroNome{
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #233053;
+  background:#0b1220;
+  color:#e5e7eb;
+}
+#filtroFeira{min-width:150px;}
+#filtroNome{min-width:200px; flex:1;}
+.gallery{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:16px;
+  padding:16px;
+}
+.card{
+  background:linear-gradient(180deg,#0f1628,#0c1424);
+  border:1px solid #1f2a44;
+  border-radius:16px;
+  overflow:hidden;
+  text-align:center;
+  cursor:pointer;
+}
+.card img{
+  width:100%;
+  aspect-ratio:4/3;
+  object-fit:cover;
+  display:block;
+}
+.download-btn{
+  display:inline-block;
+  margin:8px 0;
+  padding:4px 8px;
+  background:#22c55e;
+  color:#0b1220;
+  border-radius:8px;
+  text-decoration:none;
+  font-size:12px;
+  transition:.2s;
+}
+.download-btn:hover{filter:brightness(1.1);}
+.muted{font-size:12px;color:#94a3b8;}
+
+/* Modal */
+#imgModal{
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,.85);
+  justify-content:center;
+  align-items:center;
+  z-index:9999;
+  flex-direction:column;
+}
+#imgModal img{
+  max-width:90%;
+  max-height:80%;
+  border-radius:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,.7);
+}
+#imgModal span{
+  position:absolute;
+  top:20px;
+  right:30px;
+  font-size:28px;
+  color:#fff;
+  cursor:pointer;
+}
+#imgModal div{
+  color:#fff;
+  margin-top:8px;
+  font-size:14px;
+  text-align:center;
+}
+</style>
+</head>
+<body>
+<h1>Galeria de Fotos dos Visitantes</h1>
+
+<div id="filtroContainer">
+  <select id="filtroFeira">
+    <option value="">Todas as Feiras</option>
+  </select>
+  <input type="text" id="filtroNome" placeholder="Buscar pelo nome do visitante...">
+</div>
+
+<div id="gallery" class="gallery"></div>
+
+<!-- Modal de visualização da foto -->
+<div id="imgModal">
+  <span id="closeModal">&times;</span>
+  <img id="modalImg" src="" alt="Foto">
+  <div id="modalInfo"></div>
+  <a id="modalDownload" href="#" download class="download-btn">Baixar Foto</a>
+</div>
+
+<script>
+// 🔹 Lista de fotos hospedadas no GitHub (adicione conforme precisar)
+const fotos = [
+  {arquivo: "foto1.jpg", nome: "Maria Silva", feira: "Feira 2024"},
+  {arquivo: "foto2.jpg", nome: "João Souza", feira: "Feira 2024"},
+  {arquivo: "foto3.jpg", nome: "Ana Lima", feira: "Feira 2023"}
+  // 👉 Coloque mais fotos aqui
+];
+
+// Preenche dropdown de feiras
+function preencherFeiras(){
+  const feirasUnicas=[...new Set(fotos.map(r=>r.feira))].sort();
+  const select=document.getElementById('filtroFeira');
+  select.innerHTML='<option value="">Todas as Feiras</option>';
+  feirasUnicas.forEach(f=>{
+    const opt=document.createElement('option');
+    opt.value=f;
+    opt.textContent=f;
+    select.appendChild(opt);
+  });
+}
+
+// Mostra fotos aplicando filtros
+function mostrarFotos(){
+  const filtroFeira=document.getElementById('filtroFeira').value.toLowerCase();
+  const filtroNome=document.getElementById('filtroNome').value.toLowerCase();
+  const gallery=document.getElementById('gallery');
+  gallery.innerHTML='';
+  const filtrados=fotos.filter(r=>{
+    const matchFeira=filtroFeira? r.feira.toLowerCase()===filtroFeira : true;
+    const matchNome=r.nome.toLowerCase().includes(filtroNome);
+    return matchFeira && matchNome;
+  });
+  filtrados.forEach(r=>{
+    const url="fotos/"+r.arquivo; // 🔹 Caminho da pasta no GitHub
+    const card=document.createElement('div');
+    card.className='card';
+    card.innerHTML=`
+      <img src="${url}" alt="${r.nome||'Visitante'}">
+      <div>${r.nome||'Visitante'}</div>
+      <div class="muted">${r.feira}</div>
+    `;
+    card.onclick=()=>{
+      abrirModal(url,r.nome,r.feira);
+    };
+    gallery.appendChild(card);
+  });
+}
+
+// Modal
+const modal=document.getElementById('imgModal');
+const modalImg=document.getElementById('modalImg');
+const modalInfo=document.getElementById('modalInfo');
+const modalDownload=document.getElementById('modalDownload');
+document.getElementById('closeModal').onclick=()=>modal.style.display='none';
+modal.onclick=e=>{if(e.target===modal) modal.style.display='none';};
+
+function abrirModal(url,nome,feira){
+  modal.style.display='flex';
+  modalImg.src=url;
+  modalInfo.textContent=`${nome||'Visitante'} - ${feira}`;
+  modalDownload.href=url;
+  modalDownload.download=`${nome||'visitante'}.jpg`;
+}
+
+// Eventos dos filtros
+document.getElementById('filtroFeira').addEventListener('change', mostrarFotos);
+document.getElementById('filtroNome').addEventListener('input', mostrarFotos);
+
+// Inicialização
+preencherFeiras();
+mostrarFotos();
+</script>
+</body>
+</html>
