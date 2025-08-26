@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galeria de Fotos - Visitantes</title>
+<style>
+body{
+  margin:0;
+  font-family:system-ui;
+  background:#0f172a;
+  color:#e5e7eb;
+}
+h1{text-align:center;margin:20px 0;}
+#filtroContainer{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px;
+  margin-bottom:16px;
+  padding:0 16px;
+}
+#filtroNome{
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #233053;
+  background:#0b1220;
+  color:#e5e7eb;
+  min-width:200px;
+  flex:1;
+}
+.gallery{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:16px;
+  padding:16px;
+}
+.card{
+  background:linear-gradient(180deg,#0f1628,#0c1424);
+  border:1px solid #1f2a44;
+  border-radius:16px;
+  overflow:hidden;
+  text-align:center;
+  cursor:pointer;
+}
+.card img{
+  width:100%;
+  aspect-ratio:4/3;
+  object-fit:cover;
+  display:block;
+}
+.download-btn{
+  display:inline-block;
+  margin:8px 0;
+  padding:4px 8px;
+  background:#22c55e;
+  color:#0b1220;
+  border-radius:8px;
+  text-decoration:none;
+  font-size:12px;
+  transition:.2s;
+}
+.download-btn:hover{filter:brightness(1.1);}
+.muted{font-size:12px;color:#94a3b8;}
+
+/* Modal */
+#imgModal{
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,.85);
+  justify-content:center;
+  align-items:center;
+  z-index:9999;
+  flex-direction:column;
+}
+#imgModal img{
+  max-width:90%;
+  max-height:80%;
+  border-radius:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,.7);
+}
+#imgModal span{
+  position:absolute;
+  top:20px;
+  right:30px;
+  font-size:28px;
+  color:#fff;
+  cursor:pointer;
+}
+#imgModal div{
+  color:#fff;
+  margin-top:8px;
+  font-size:14px;
+  text-align:center;
+}
+</style>
+</head>
+<body>
+<h1>Galeria de Fotos dos Visitantes</h1>
+
+<div id="filtroContainer">
+  <input type="text" id="filtroNome" placeholder="Buscar pelo nome do visitante...">
+</div>
+
+<div id="gallery" class="gallery"></div>
+
+<!-- Modal -->
+<div id="imgModal">
+  <span id="closeModal">&times;</span>
+  <img id="modalImg" src="" alt="Foto">
+  <div id="modalInfo"></div>
+  <a id="modalDownload" href="#" download class="download-btn">Baixar Foto</a>
+</div>
+
+<script>
+// ⚙️ Configuração do seu GitHub
+const usuario = "liparini";      // seu usuário
+const repositorio = "fotos";     // seu repositório
+const pasta = "fotos";           // pasta com as imagens
+
+async function carregarFotos() {
+  const url = `https://api.github.com/repos/${usuario}/${repositorio}/contents/${pasta}`;
+  const resposta = await fetch(url);
+  const arquivos = await resposta.json();
+
+  const gallery = document.getElementById("gallery");
+  const filtroNome = document.getElementById("filtroNome").value.toLowerCase();
+  gallery.innerHTML = "";
+
+  arquivos.filter(a => a.type === "file" && a.name.match(/\.(jpg|jpeg|png|gif)$/i))
+          .filter(a => a.name.toLowerCase().includes(filtroNome))
+          .forEach(arquivo => {
+            const url = encodeURI(arquivo.download_url);
+            const nome = arquivo.name.replace(/\.(jpg|jpeg|png|gif)$/i,"");
+            
+            const card = document.createElement("div");
+            card.className = "card";
+            card.innerHTML = `
+              <img src="${url}" alt="${nome}">
+              <div>${nome}</div>
+            `;
+            card.onclick = () => abrirModal(url, nome);
+            gallery.appendChild(card);
+          });
+}
+
+// Modal
+const modal = document.getElementById("imgModal");
+const modalImg = document.getElementById("modalImg");
+const modalInfo = document.getElementById("modalInfo");
+const modalDownload = document.getElementById("modalDownload");
+document.getElementById("closeModal").onclick = () => modal.style.display='none';
+modal.onclick = e => { if(e.target === modal) modal.style.display='none'; }
+
+function abrirModal(url, nome){
+  modal.style.display='flex';
+  modalImg.src = encodeURI(url);
+  modalInfo.textContent = nome;
+  modalDownload.href = encodeURI(url);
+  modalDownload.download = `${nome}.jpg`;
+}
+
+// Eventos
+document.getElementById("filtroNome").addEventListener("input", carregarFotos);
+
+// Inicialização
+carregarFotos();
+</script>
+</body>
+</html>
