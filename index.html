@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Galeria de Fotos - Visitantes</title>
+<title>Galeria de Fotos e Vídeos - Visitantes</title>
 <style>
 body{
   margin:0;
@@ -42,8 +42,9 @@ h1{text-align:center;margin:20px 0;}
   overflow:hidden;
   text-align:center;
   cursor:pointer;
+  position:relative;
 }
-.card img{
+.card img, .card video{
   width:100%;
   aspect-ratio:4/3;
   object-fit:cover;
@@ -64,7 +65,7 @@ h1{text-align:center;margin:20px 0;}
 .muted{font-size:12px;color:#94a3b8;}
 
 /* Modal */
-#imgModal{
+#mediaModal{
   display:none;
   position:fixed;
   top:0;
@@ -77,13 +78,13 @@ h1{text-align:center;margin:20px 0;}
   z-index:9999;
   flex-direction:column;
 }
-#imgModal img{
+#mediaModal img, #mediaModal video{
   max-width:90%;
   max-height:80%;
   border-radius:12px;
   box-shadow:0 8px 32px rgba(0,0,0,.7);
 }
-#imgModal span{
+#mediaModal span{
   position:absolute;
   top:20px;
   right:30px;
@@ -91,7 +92,7 @@ h1{text-align:center;margin:20px 0;}
   color:#fff;
   cursor:pointer;
 }
-#imgModal div{
+#mediaModal div{
   color:#fff;
   margin-top:8px;
   font-size:14px;
@@ -100,7 +101,7 @@ h1{text-align:center;margin:20px 0;}
 </style>
 </head>
 <body>
-<h1>Galeria de Fotos dos Visitantes</h1>
+<h1>Galeria de Fotos e Vídeos dos Visitantes</h1>
 
 <div id="filtroContainer">
   <input type="text" id="filtroNome" placeholder="Buscar pelo nome do visitante...">
@@ -109,20 +110,21 @@ h1{text-align:center;margin:20px 0;}
 <div id="gallery" class="gallery"></div>
 
 <!-- Modal -->
-<div id="imgModal">
+<div id="mediaModal">
   <span id="closeModal">&times;</span>
-  <img id="modalImg" src="" alt="Foto">
+  <img id="modalImg" style="display:none" alt="Foto">
+  <video id="modalVideo" style="display:none" controls></video>
   <div id="modalInfo"></div>
-  <a id="modalDownload" href="#" download class="download-btn">Baixar Foto</a>
+  <a id="modalDownload" href="#" download class="download-btn">Baixar</a>
 </div>
 
 <script>
 // ⚙️ Configuração do seu GitHub
 const usuario = "liparini";      // seu usuário
 const repositorio = "fotos";     // seu repositório
-const pasta = "fotos";           // pasta com as imagens
+const pasta = "fotos";           // pasta com as imagens/vídeos
 
-async function carregarFotos() {
+async function carregarMidia() {
   const url = `https://api.github.com/repos/${usuario}/${repositorio}/contents/${pasta}`;
   const resposta = await fetch(url);
   const arquivos = await resposta.json();
@@ -131,44 +133,68 @@ async function carregarFotos() {
   const filtroNome = document.getElementById("filtroNome").value.toLowerCase();
   gallery.innerHTML = "";
 
-  arquivos.filter(a => a.type === "file" && a.name.match(/\.(jpg|jpeg|png|gif)$/i))
+  arquivos.filter(a => a.type === "file" && a.name.match(/\.(jpg|jpeg|png|gif|mp4|webm|ogg)$/i))
           .filter(a => a.name.toLowerCase().includes(filtroNome))
           .forEach(arquivo => {
             const url = encodeURI(arquivo.download_url);
-            const nome = arquivo.name.replace(/\.(jpg|jpeg|png|gif)$/i,"");
+            const nome = arquivo.name.replace(/\.(jpg|jpeg|png|gif|mp4|webm|ogg)$/i,"");
             
             const card = document.createElement("div");
             card.className = "card";
-            card.innerHTML = `
-              <img src="${url}" alt="${nome}">
-              <div>${nome}</div>
-            `;
-            card.onclick = () => abrirModal(url, nome);
+
+            if(/\.(mp4|webm|ogg)$/i.test(arquivo.name)){
+              card.innerHTML = `
+                <video src="${url}" muted></video>
+                <div>${nome} (vídeo)</div>
+              `;
+              card.onclick = () => abrirModal("video", url, nome);
+            } else {
+              card.innerHTML = `
+                <img src="${url}" alt="${nome}">
+                <div>${nome}</div>
+              `;
+              card.onclick = () => abrirModal("img", url, nome);
+            }
             gallery.appendChild(card);
           });
 }
 
 // Modal
-const modal = document.getElementById("imgModal");
+const modal = document.getElementById("mediaModal");
 const modalImg = document.getElementById("modalImg");
+const modalVideo = document.getElementById("modalVideo");
 const modalInfo = document.getElementById("modalInfo");
 const modalDownload = document.getElementById("modalDownload");
-document.getElementById("closeModal").onclick = () => modal.style.display='none';
-modal.onclick = e => { if(e.target === modal) modal.style.display='none'; }
 
-function abrirModal(url, nome){
+document.getElementById("closeModal").onclick = () => fecharModal();
+modal.onclick = e => { if(e.target === modal) fecharModal(); }
+
+function abrirModal(tipo, url, nome){
   modal.style.display='flex';
-  modalImg.src = encodeURI(url);
+  if(tipo==="img"){
+    modalImg.style.display="block";
+    modalVideo.style.display="none";
+    modalImg.src = url;
+  } else {
+    modalVideo.style.display="block";
+    modalImg.style.display="none";
+    modalVideo.src = url;
+  }
   modalInfo.textContent = nome;
-  modalDownload.href = encodeURI(url);
-  modalDownload.download = `${nome}.jpg`;
+  modalDownload.href = url;
+}
+
+function fecharModal(){
+  modal.style.display='none';
+  modalVideo.pause();
+  modalVideo.src="";
 }
 
 // Eventos
-document.getElementById("filtroNome").addEventListener("input", carregarFotos);
+document.getElementById("filtroNome").addEventListener("input", carregarMidia);
 
 // Inicialização
-carregarFotos();
+carregarMidia();
 </script>
 </body>
 </html>
